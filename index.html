@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NÄRØS Store</title>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:#0f0f0f;
+color:white;
+}
+
+header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:20px;
+background:#111;
+border-bottom:1px solid #333;
+}
+
+.logo{
+font-size:22px;
+font-weight:bold;
+color:#c9a54c;
+}
+
+button{
+background:#c9a54c;
+border:none;
+padding:10px 15px;
+cursor:pointer;
+}
+
+.hero{
+text-align:center;
+padding:60px 20px;
+}
+
+.products{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:20px;
+padding:20px;
+}
+
+.card{
+background:#1a1a1a;
+padding:15px;
+border-radius:8px;
+text-align:center;
+}
+
+.card img{
+width:100%;
+height:160px;
+object-fit:cover;
+}
+
+.cart{
+position:fixed;
+right:0;
+top:0;
+width:320px;
+height:100%;
+background:#111;
+padding:20px;
+overflow:auto;
+border-left:1px solid #333;
+}
+
+input{
+width:100%;
+padding:10px;
+margin-top:10px;
+}
+
+.checkout{
+padding:20px;
+}
+
+.admin{
+display:none;
+padding:20px;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="logo">NÄRØS</div>
+<button onclick="toggleCart()">Panier (<span id="cart-count">0</span>)</button>
+</header>
+
+<section class="hero">
+<h1>Innovation for Everyday Life</h1>
+<p>Découvrez nos gadgets modernes.</p>
+</section>
+
+<section class="products" id="products"></section>
+
+<div class="cart" id="cart" style="display:none;">
+<h2>Panier</h2>
+<div id="cart-items"></div>
+<h3>Total : $<span id="total"></span></h3>
+<button onclick="checkout()">Commander</button>
+</div>
+
+<section class="checkout" id="checkout" style="display:none;">
+<h2>Checkout</h2>
+
+<input id="name" placeholder="Nom">
+<input id="phone" placeholder="Téléphone">
+<input id="country" placeholder="Pays">
+
+<h3>Paiement</h3>
+
+<p><b>Orange Money</b></p>
+<p>Numéro : +226 05 15 97 12</p>
+<p>Envoyer la preuve sur WhatsApp</p>
+
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
+<input type="hidden" name="cmd" value="_xclick">
+<input type="hidden" name="business" value="kindaabdel55@gmail.com">
+<input type="hidden" name="item_name" value="Commande NAROS">
+<input type="hidden" name="currency_code" value="USD">
+<input type="hidden" name="amount" id="paypalAmount">
+<button type="submit">Payer avec PayPal</button>
+</form>
+
+<button onclick="confirmOrder()">Confirmer commande</button>
+
+</section>
+
+<section class="admin" id="admin">
+<h2>Admin</h2>
+<button onclick="loadOrders()">Voir commandes</button>
+<button onclick="clearOrders()">Supprimer commandes</button>
+<div id="orders"></div>
+</section>
+
+<script>
+
+const products=[
+{id:1,name:"Smart LED Lamp",price:29,img:"https://picsum.photos/300?1"},
+{id:2,name:"Magnetic Phone Holder",price:19,img:"https://picsum.photos/300?2"},
+{id:3,name:"Portable Blender",price:39,img:"https://picsum.photos/300?3"},
+{id:4,name:"Mini Vacuum Cleaner",price:35,img:"https://picsum.photos/300?4"}
+];
+
+let cart=JSON.parse(localStorage.getItem("cart"))||[];
+
+function renderProducts(){
+let html="";
+products.forEach(p=>{
+html+=`
+<div class="card">
+<img src="${p.img}">
+<h3>${p.name}</h3>
+<p>$${p.price}</p>
+<button onclick="addToCart(${p.id})">Ajouter</button>
+</div>
+`;
+});
+document.getElementById("products").innerHTML=html;
+}
+
+function addToCart(id){
+let product=products.find(p=>p.id==id);
+cart.push(product);
+localStorage.setItem("cart",JSON.stringify(cart));
+updateCart();
+}
+
+function updateCart(){
+document.getElementById("cart-count").innerText=cart.length;
+
+let items="";
+let total=0;
+
+cart.forEach((p,i)=>{
+total+=p.price;
+items+=`
+<p>${p.name} - $${p.price}
+<button onclick="removeItem(${i})">X</button></p>
+`;
+});
+
+document.getElementById("cart-items").innerHTML=items;
+document.getElementById("total").innerText=total;
+document.getElementById("paypalAmount").value=total;
+}
+
+function removeItem(i){
+cart.splice(i,1);
+localStorage.setItem("cart",JSON.stringify(cart));
+updateCart();
+}
+
+function toggleCart(){
+let cartBox=document.getElementById("cart");
+cartBox.style.display=cartBox.style.display=="none"?"block":"none";
+}
+
+function checkout(){
+document.getElementById("checkout").style.display="block";
+}
+
+function confirmOrder(){
+
+let order={
+id:Date.now(),
+name:document.getElementById("name").value,
+phone:document.getElementById("phone").value,
+country:document.getElementById("country").value,
+cart:cart
+};
+
+let orders=JSON.parse(localStorage.getItem("orders"))||[];
+orders.push(order);
+
+localStorage.setItem("orders",JSON.stringify(orders));
+
+cart=[];
+localStorage.removeItem("cart");
+
+alert("Commande confirmée !");
+location.reload();
+}
+
+function loadOrders(){
+
+let pass=prompt("Mot de passe admin");
+
+if(pass!="narosadmin123") return;
+
+document.getElementById("admin").style.display="block";
+
+let orders=JSON.parse(localStorage.getItem("orders"))||[];
+
+let html="";
+
+orders.forEach(o=>{
+html+=`<p>Commande ${o.id} - ${o.name} (${o.phone})</p>`;
+});
+
+document.getElementById("orders").innerHTML=html;
+
+}
+
+function clearOrders(){
+localStorage.removeItem("orders");
+alert("Commandes supprimées");
+}
+
+renderProducts();
+updateCart();
+
+</script>
+
+</body>
+  </html>
